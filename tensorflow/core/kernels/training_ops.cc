@@ -309,6 +309,25 @@ struct ApplyAdamNonCuda {
   }
 };
 
+template <typename Device, typename T>
+struct ApplyAMSGradNonCuda {
+  void operator()(const Device& d, typename TTypes<T>::Flat var,
+		  typename TTypes<T>::Flat m, typename TTypes<T>::Flat v,
+		  typename TTypes<T>::Flat v_hat,
+		  typename TTypes<T>::ConstScalar beta1_power,
+		  typename TTypes<T>::ConstScalar beta2_power,
+		  typename TTypes<T>::ConstScalar epsilon,
+		  typename TTypes<T>::ConstFlat grad) {
+    const T alpha = lr();
+
+    m.device(d) += (grad - m) * (T(1)- beta1());
+    v.device(d) += (grad.square() - v) * (T(1) - beta2());
+    v_hat.device(d) = v_hat.cwiseMax(v_hat, v);
+    var.device(d) -= (m * alpha) / (v.sqrt() + epsilon());
+  }
+};
+
+
 #ifdef TENSORFLOW_USE_SYCL
 template <typename T>
 struct ApplyAdamSYCL {
